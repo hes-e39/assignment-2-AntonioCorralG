@@ -1,12 +1,47 @@
+import { useEffect } from 'react';
 import { createContext, useContext, useState } from 'react';
 import type { Timer, TimerContextType } from "../types/types";
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = "workoutTimerState";
+
+
 export const TimerProvider = ({ children }: { children: any }) => {
     const [timers, setTimers] = useState<Timer[]>([]);
     const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
     const [isWorkoutRunning, setIsWorkoutRunning] = useState(false);
+
+    // check for saved state
+    useEffect(() => {
+        const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedState) {
+            try {
+                const { timers, currentTimerIndex, isWorkoutRunning } = JSON.parse(savedState);
+                setTimers(timers);
+                setCurrentTimerIndex(currentTimerIndex);
+                setIsWorkoutRunning(isWorkoutRunning);
+            } catch (error) {
+                console.error("Unable to retreieve saved state. :-/", error);
+            }
+        }
+    }, []);
+
+
+    // Save state to local storage on changes
+    useEffect(() => {
+        const saveState = () => {
+            const state = {
+                timers,
+                currentTimerIndex,
+                isWorkoutRunning,
+            };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+        };
+
+        const timeoutId = setTimeout(saveState, 1000);
+        return () => clearTimeout(timeoutId);
+    }, [timers, currentTimerIndex, isWorkoutRunning]);
 
     const addTimer = (timer: Timer) => {
         setTimers(prevTimers => [...prevTimers, timer]);
